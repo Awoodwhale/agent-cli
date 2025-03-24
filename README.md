@@ -16,23 +16,24 @@
 ## 🛠️ 帮助信息
 
 ```bash
-usage: agent-cli.py [-h] [-m MODEL] [-a] [-iu] [-ia] [-c] [-sh] [-co] [-o OUTPUT] [-r] [prompt]
+usage: agent-cli.py [-h] [-m MODEL] [-a] [-iu] [-ia] [-it] [-c] [-sh] [-co] [-o OUTPUT] [-r] [prompt]
 
 Ask any questions to AI
 
 positional arguments:
-  prompt                用户询问的 prompt
+  prompt                用户输入的 prompt
 
 options:
   -h, --help            show this help message and exit
   -m MODEL, --model MODEL
-                        用户选择的 model
+                        用户选择的 AI model
   -a, --ahead           参数 prompt 是否拼接在管道 prompt 的前面, 默认为 true
-  -iu, --ignore_user    不展示 user 输入的 prompt, 默认为 false
-  -ia, --ignore_ai      不展示 ai 的模型信息, 默认为 false
-  -c, --conversation    启用对话模式, 默认为 false
-  -sh, --shell          启用生成`shell脚本`模式, 默认为 false
-  -co, --code           启用生成`code代码`模式, 默认为 false
+  -iu, --ignore_user    不输出 user 输入的 prompt, 默认为 false
+  -ia, --ignore_ai      不输出 ai 的模型信息, 默认为 false
+  -it, --ignore_think   不输出 ai 的思考信息, 默认为 false
+  -c, --conversation    启用多轮对话模式, 默认为 false
+  -sh, --shell          启用 `shell脚本` 模式, AI 只会生成 shell 脚本, 默认为 false
+  -co, --code           启用 `code代码` 模式, AI 只会生成相关代码, 默认为 false
   -o OUTPUT, --output OUTPUT
                         将 AI 的输出写入指定文件
   -r, --rich            将 AI 的输出使用 rich 进行 markdown 渲染, 默认为 false
