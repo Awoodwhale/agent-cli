@@ -26,3 +26,13 @@ def after_ai_ask_hook(ai_reply: str, mode: str) -> str:
 
     # 返回 AI 的原始回复
     return ai_reply
+
+
+if __name__ == "__main__":
+    ai_reply = "echo Hello, World!"
+    mode = "shell"
+    print(f"AI Reply: {ai_reply}")
+    print(f"Mode: {mode}")
+    print("Expected: Command should be executed and 'Hello, World!' should be printed.")
+    result = after_ai_ask_hook(ai_reply, mode)
+    print(f"Result: {result}")
