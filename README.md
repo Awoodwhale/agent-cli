@@ -90,6 +90,12 @@ echo 'hello' | ./agent-cli.py -c
 
 在 plugins 文件夹下可以编写插件, 通过自定义 `before_ai_ask_hook` 和 `after_ai_ask_hook` 函数即可分别完成对 `prompt` 和 `AI回答` 的 hook。
 
+内置的 plugin 有:
+
+- `file.py` （使用 `@file('test.py')` 将文件的内容写入用户输入的 prompt）
+- `fetch.py` （使用 `@fetch('https://www.baidu.com')` 将网页的内容写入用户输入的 prompt）
+- `shell.py` （开启 `-sh 或 --shell` 参数后，用户选择是否执行 AI 生成的 shell 脚本）
+
 ## 👋 最后
 
 立即体验 `agent-cli`，让 AI 成为你的终端助手！
