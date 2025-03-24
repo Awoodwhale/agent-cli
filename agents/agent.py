@@ -1,8 +1,6 @@
 import sys
 from io import StringIO
-from typing import Callable, Dict, List, Optional
-
-from openai import NOT_GIVEN
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .ai import BaseAI
 
@@ -14,9 +12,9 @@ class Agent:
         model: str,
         env_config: Dict[str, str],
         output_io: StringIO,
-        tools=NOT_GIVEN,
+        tools: Optional[List[Dict[str, Any]]] = None,
         system_prompt: Optional[str] = None,
-        messages: Optional[List[str]] = None,
+        messages: Optional[List[Dict[str, str]]] = None,
         before_ai_ask_hook: Optional[Callable] = None,
         after_ai_ask_hook: Optional[Callable] = None,
     ) -> None:
@@ -41,7 +39,7 @@ class Agent:
         # 根据命令行参数和环境配置确定运行模式
         self.mode = self._determine_mode(cli_args, env_config, system_prompt)
         # 初始化AI对象
-        self.ai = self._initialize_ai(model, env_config, tools, system_prompt, messages)
+        self.ai = self._initialize_ai(model, env_config, tools, messages)
         # 获取用户和AI的emoji表示
         self.user_emoji = env_config.get("USER_EMOJI", "💬:")
         self.ai_emoji = env_config.get("AI_EMOJI", "🤖:")
@@ -55,8 +53,11 @@ class Agent:
             self.output_file = open(cli_args.output, "w", encoding="utf-8")
 
     def _determine_mode(
-        self, cli_args, env_config, system_prompt: Optional[str]
-    ) -> str:
+        self,
+        cli_args,
+        env_config: Dict[str, str],
+        system_prompt: Optional[str],
+    ) -> Tuple[str, str]:
         """
         根据命令行参数和环境配置确定运行模式。
 
@@ -65,36 +66,42 @@ class Agent:
         :param system_prompt: 可选，系统提示信息
         :return: 运行模式字符串，如"shell"、"code"或"default"
         """
-        if system_prompt is None:
-            if cli_args.shell:
-                from os import getenv as os_getenv
-                from platform import system as os_name
+        if cli_args.shell:
+            from os import getenv as os_getenv
+            from platform import system as os_name
 
-                # 如果命令行参数中启用了shell模式，设置系统提示为SHELL_PROMPT
-                system_prompt = env_config.get("SHELL_PROMPT").format_map(
-                    {"os": os_name(), "shell": os_getenv("SHELL")}
-                )
-                cli_args.ignore_user = cli_args.ignore_ai = True
-                return "shell"
-            elif cli_args.code:
-                # 如果命令行参数中启用了code模式，设置系统提示为CODE_PROMPT
-                system_prompt = env_config.get("CODE_PROMPT")
-                cli_args.ignore_user = cli_args.ignore_ai = True
-                return "code"
-            else:
-                # 否则使用默认提示
-                system_prompt = env_config.get("DEFAULT_PROMPT")
-                return "default"
-        return "default"
+            # 如果命令行参数中启用了shell模式，设置系统提示为SHELL_PROMPT
+            prompt = env_config.get("SHELL_PROMPT").format_map(
+                {"os": os_name(), "shell": os_getenv("SHELL")}
+            )
+            mode = "shell"
+            cli_args.ignore_user = cli_args.ignore_ai = True
+        elif cli_args.code:
+            # 如果命令行参数中启用了code模式，设置系统提示为CODE_PROMPT
+            prompt = env_config.get("CODE_PROMPT")
+            mode = "code"
+            cli_args.ignore_user = cli_args.ignore_ai = True
+        else:
+            # 否则使用默认提示
+            prompt = env_config.get("DEFAULT_PROMPT")
+            mode = "default"
 
-    def _initialize_ai(self, model, env_config, tools, system_prompt, messages):
+        self.system_prompt = prompt if system_prompt is None else system_prompt
+        return mode
+
+    def _initialize_ai(
+        self,
+        model: str,
+        env_config: Dict[str, str],
+        tools: Optional[List[Dict[str, Any]]],
+        messages: Optional[List[Dict[str, str]]],
+    ):
         """
         初始化AI对象。
 
         :param model: 使用的AI模型名称
         :param env_config: 环境配置字典
         :param tools: 传递给AI的工具
-        :param system_prompt: 系统提示信息
         :param messages: 初始消息列表
         :return: 初始化的BaseAI对象
         """
@@ -109,7 +116,7 @@ class Agent:
             timeout,
             stream,
             tools,
-            system_prompt,
+            self.system_prompt,
             messages,
         )
 
@@ -155,9 +162,12 @@ class Agent:
         """
         # 如果启用了rich，使用rich控制台输出AI回答
         if self.cli_args.rich:
-            self.rich_console.print(
-                self.rich_line, "", self.rich_markdown(ai_reply), ""
-            )
+            reply = ai_reply.strip()
+            if self.mode != "default":
+                if not reply.startswith("```") and not reply.endswith("```"):
+                    reply = f"```\n{reply}\n```"
+
+            self.rich_console.print("", self.rich_line, "", self.rich_markdown(reply))
 
         # 如果指定了输出文件，将AI回答写入文件
         if self.cli_args.output:
@@ -198,11 +208,17 @@ class Agent:
 
             self.output_io.flush()
 
-        self.output_io.write("\n\n" if self.cli_args.conversation else "\n")
         # 将AI回答添加到消息列表中
         self.ai.messages.append(self.ai.ai_message(ai_reply))
 
-        return self.after_ask_ai(ai_reply)
+        self.output_io.write("\n")
+
+        ai_reply = self.after_ask_ai(ai_reply)
+
+        if self.cli_args.conversation:
+            self.output_io.write("\n")
+
+        return ai_reply
 
     def get_user_input(self, need_user_input: bool = True) -> str:
         """
@@ -264,7 +280,7 @@ class Agent:
                 if not self.cli_args.conversation:
                     break
 
-    def __exit__(self):
+    def __del__(self):
         """
         在Agent退出时执行的操作，如关闭输出文件。
         """

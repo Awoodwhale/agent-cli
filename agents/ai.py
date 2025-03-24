@@ -1,6 +1,6 @@
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
-from openai import NOT_GIVEN, OpenAI
+from openai import OpenAI
 from openai.types.chat import ChatCompletion
 
 
@@ -12,7 +12,7 @@ class BaseAI:
         model: str,
         timeout: int,
         stream: bool = True,
-        tools: Optional[List[Dict[str, Any]]] = NOT_GIVEN,
+        tools: Optional[List[Dict[str, Any]]] = None,
         system_prompt: Optional[str] = None,
         messages: Optional[List[Dict[str, str]]] = None,
     ) -> None:
