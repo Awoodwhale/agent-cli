@@ -38,11 +38,17 @@ class Agent:
 
         # 根据命令行参数和环境配置确定运行模式
         self.mode = self._determine_mode(cli_args, env_config, system_prompt)
+
         # 初始化AI对象
         self.ai = self._initialize_ai(model, env_config, tools, messages)
+
         # 获取用户和AI的emoji表示
         self.user_emoji = env_config.get("USER_EMOJI", "💬:")
         self.ai_emoji = env_config.get("AI_EMOJI", "🤖:")
+        self.think_start_emoji = env_config.get(
+            "THINK_START_EMOJI", "🤔 <Start Thinking>"
+        )
+        self.think_end_emoji = env_config.get("THINK_END_EMOJI", "💡 <End Thinking>")
 
         # 如果命令行参数中启用了rich，初始化rich控制台
         if self.cli_args.rich:
@@ -66,6 +72,11 @@ class Agent:
         :param system_prompt: 可选，系统提示信息
         :return: 运行模式字符串，如"shell"、"code"或"default"
         """
+        if cli_args.shell and cli_args.code:
+            raise RuntimeError(
+                "Only one of `shell mode` or `code mode` can be active at a time."
+            )
+
         if cli_args.shell:
             from os import getenv as os_getenv
             from platform import system as os_name
@@ -196,14 +207,29 @@ class Agent:
             return response
 
         ai_reply = ""
+        has_thinking = False
         # 处理流式响应，逐块获取AI回答
         for chunk in response:
             delta = chunk.choices[0].delta
             if hasattr(delta, "content") and delta.content:
+                if has_thinking:
+                    has_thinking = False
+                    self.output_io.write(
+                        f"\033[0m\n\033[1;36m{self.think_end_emoji}\033[0m\n"
+                    )
+
                 content = delta.content
                 self.output_io.write(content)
                 ai_reply += content
             if hasattr(delta, "reasoning_content") and delta.reasoning_content:
+                if self.cli_args.ignore_think:
+                    continue
+
+                if not has_thinking:
+                    has_thinking = True
+                    self.output_io.write(
+                        f"\033[1;36m{self.think_start_emoji}\033[0m\n\033[3m"
+                    )
                 self.output_io.write(delta.reasoning_content)
 
             self.output_io.flush()
