@@ -3,7 +3,7 @@ from sys import stdout
 
 from agents import Agent
 from cli import cli_args
-from env import env_config
+from config import env_config
 from plugins import after_ai_ask, before_ai_ask
 
 MODELS = {
