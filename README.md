@@ -90,6 +90,8 @@ echo 'hello' | ./agent-cli.py -c
 
 在 plugins 文件夹下可以编写插件, 通过自定义 `before_ai_ask_hook` 和 `after_ai_ask_hook` 函数即可分别完成对 `prompt` 和 `AI回答` 的 hook。
 
+## 👋 最后
+
 立即体验 `agent-cli`，让 AI 成为你的终端助手！
 
 *(该 README.md 使用 `agent-cli` & `DeepSeek-V3` 优化)*
